@@ -1,6 +1,6 @@
 import { io } from 'socket.io-client';
 
-const WEBSOCKET_URL = 'wss://fatakeshto-application.vercel.app';
+const WEBSOCKET_URL = 'wss://fatakeshto-application.onrender.com';
 
 class WebSocketService {
   constructor() {
