@@ -50,6 +50,7 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str
+    role: Optional[UserRole] = Field(default=UserRole.STANDARD)
 
 class UserUpdate(BaseModel):
     email: Optional[EmailStr] = None
@@ -57,6 +58,17 @@ class UserUpdate(BaseModel):
     password: Optional[str] = None
     role: Optional[UserRole] = None
     mfa_enabled: Optional[bool] = None
+
+class UserOut(UserBase):
+    id: int
+    role: UserRole
+    is_active: bool
+    created_at: datetime
+    last_login: Optional[datetime]
+    mfa_enabled: bool
+
+    class Config:
+        orm_mode = True
 
 class User(UserBase):
     id: int
