@@ -29,7 +29,7 @@ const authService = {
             return response.data;
         } catch (error) {
             if (error.response?.status === 422) {
-                throw { detail: 'Invalid username or password format' };
+                throw { detail: error.response.data.detail || 'Username and password are required' };
             } else if (error.response?.status === 401) {
                 throw { detail: error.response.data.detail || 'Authentication failed' };
             }
