@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'https://fatakeshto-application.onrender.com';
+const API_BASE_URL = 'https://fatakeshto-application.vercel.app';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
