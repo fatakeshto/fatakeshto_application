@@ -41,9 +41,28 @@ const Login = () => {
     setError('');
 
     try {
-      const response = await axios.post('https://fatakeshto-application.onrender.com/api/auth/login', credentials);
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('role', response.data.role);
+      const formData = new URLSearchParams();
+      formData.append('username', credentials.username);
+      formData.append('password', credentials.password);
+      
+      const response = await axios.post(
+        'https://fatakeshto-application.onrender.com/api/auth/login',
+        formData.toString(),
+        {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+          }
+        }
+      );
+
+      if (response.data.requires_mfa) {
+        // Handle MFA requirement here
+        setError('MFA authentication required');
+        return;
+      }
+
+      localStorage.setItem('token', response.data.access_token);
+      localStorage.setItem('refresh_token', response.data.refresh_token);
       navigate('/dashboard');
     } catch (error) {
       setError(
