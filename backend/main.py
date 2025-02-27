@@ -24,9 +24,27 @@ async def health_check():
 
 # Import and include routers
 from routers import auth, devices, admin
-app.include_router(auth.router)
-app.include_router(devices.router, prefix="/devices", tags=["Devices"])
-app.include_router(admin.router, prefix="/admin", tags=["Admin"])
+
+# Mount authentication router with proper prefix and tags
+app.include_router(
+    auth.router,
+    prefix="/auth",
+    tags=["Authentication"]
+)
+
+# Mount devices router
+app.include_router(
+    devices.router,
+    prefix="/api/devices",
+    tags=["Devices"]
+)
+
+# Mount admin router
+app.include_router(
+    admin.router,
+    prefix="/api/admin",
+    tags=["Admin"]
+)
 
 if __name__ == "__main__":
     import uvicorn

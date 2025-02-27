@@ -98,6 +98,18 @@ class DeviceUpdate(BaseModel):
 class Device(DeviceBase):
     id: int
     owner_id: int
+
+# Audit Log schemas
+class AuditLogResponse(BaseModel):
+    id: int
+    timestamp: datetime
+    user_id: int
+    action: str
+    details: str
+    ip_address: Optional[str]
+
+    class Config:
+        orm_mode = True
     is_online: bool
     last_seen: Optional[datetime]
     created_at: datetime
@@ -193,7 +205,11 @@ class ClipboardRequest(BaseModel):
 class FileOperation(BaseModel):
     operation_type: FileOperationType
     file_path: str
-    new_name: Optional[str] = None
+    new_path: Optional[str] = None  # Used for rename operations
+    content: Optional[str] = None   # Used for upload operations
+
+    class Config:
+        orm_mode = True
 
     class Config:
         from_attributes = True

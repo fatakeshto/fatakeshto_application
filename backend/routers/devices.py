@@ -9,7 +9,7 @@ from models import Device, CommandLog, CommandQueue, User
 from schemas import (
     DeviceCreate, Device as DeviceSchema, DeviceUpdate,
     CommandRequest, CommandLogOut, FileOperationType,
-    ProcessRequest, ClipboardRequest
+    ProcessRequest, ClipboardRequest, FileOperation
 )
 from utils import get_current_user, verify_device_token
 import logging

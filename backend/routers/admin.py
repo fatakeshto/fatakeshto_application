@@ -1,26 +1,30 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from database import get_db
+from models import User
+from schemas import UserCreate
+from utils import get_current_admin_user, get_password_hash
 from sqlalchemy.future import select
 from typing import List
 from datetime import datetime, timedelta
-from ..database import get_db
-from ..models import User, Device, AuditLog
-from ..schemas import UserCreate, UserUpdate, DeviceCreate, DeviceUpdate, AuditLogResponse
-from ..utils import get_current_admin_user, get_password_hash
+from database import get_db
+from models import User, Device, AuditLog
+from schemas import UserCreate, UserUpdate, UserOut, DeviceCreate, DeviceUpdate, AuditLogResponse
+from utils import get_current_admin_user, get_password_hash
 import csv
 from fastapi.responses import StreamingResponse
 from io import StringIO
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
-@router.get("/users", response_model=List[User])
+@router.get("/users", response_model=List[UserOut])
 async def list_users(skip: int = 0, limit: int = 100, current_user: User = Depends(get_current_admin_user),
                     db: AsyncSession = Depends(get_db)):
     """List all users in the system"""
     result = await db.execute(select(User).offset(skip).limit(limit))
     return result.scalars().all()
 
-@router.post("/users", response_model=User, status_code=status.HTTP_201_CREATED)
+@router.post("/users", response_model=UserOut, status_code=status.HTTP_201_CREATED)
 async def create_user(user: UserCreate, current_user: User = Depends(get_current_admin_user),
                      db: AsyncSession = Depends(get_db)):
     """Create a new user"""
@@ -35,7 +39,7 @@ async def create_user(user: UserCreate, current_user: User = Depends(get_current
     await db.refresh(db_user)
     return db_user
 
-@router.put("/users/{user_id}", response_model=User)
+@router.put("/users/{user_id}", response_model=UserOut)
 async def update_user(user_id: int, user: UserUpdate,
                      current_user: User = Depends(get_current_admin_user),
                      db: AsyncSession = Depends(get_db)):
@@ -67,7 +71,7 @@ async def delete_user(user_id: int, current_user: User = Depends(get_current_adm
     await db.delete(db_user)
     await db.commit()
 
-@router.get("/devices", response_model=List[Device])
+@router.get("/devices", response_model=List[DeviceCreate])
 async def list_devices(skip: int = 0, limit: int = 100,
                       current_user: User = Depends(get_current_admin_user),
                       db: AsyncSession = Depends(get_db)):
