@@ -61,7 +61,7 @@ async def register_user(user: UserCreate, request: Request, db: AsyncSession = D
     
     return new_user
 
-@router.post("/login", response_model=Token)
+@router.post("/token", response_model=Token)
 @rate_limit
 async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
     if not form_data.username or not form_data.password:
