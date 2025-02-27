@@ -69,54 +69,71 @@ async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Username and password are required"
         )
-    user = await authenticate_user(form_data.username, form_data.password, db)
-    if not user:
+
+    try:
+        user = await authenticate_user(form_data.username, form_data.password, db)
+        if not user:
+            await log_security_event(
+                db=db,
+                user_id=0,  # 0 indicates failed login attempt
+                action="LOGIN_FAILED",
+                details=f"Failed login attempt for username: {form_data.username}",
+                ip_address=request.client.host
+            )
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect username or password",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        # Check if MFA is required
+        mfa_token = getattr(form_data, 'mfa_token', None)
+        if user.mfa_enabled and not mfa_token:
+            return {"requires_mfa": True, "message": "MFA token required"}
+        
+        if user.mfa_enabled:
+            if not verify_mfa_token(user.mfa_secret, mfa_token):
+                await log_security_event(
+                    db=db,
+                    user_id=user.id,
+                    action="MFA_FAILED",
+                    details="Invalid MFA token provided",
+                    ip_address=request.client.host
+                )
+                raise HTTPException(status_code=401, detail="Invalid MFA token")
+
+        # Generate tokens
+        access_token = create_access_token(data={"sub": user.username})
+        refresh_token = create_refresh_token(data={"sub": user.username})
+        
+        # Log successful login
         await log_security_event(
             db=db,
-            user_id=0,  # 0 indicates failed login attempt
-            action="LOGIN_FAILED",
-            details=f"Failed login attempt for username: {form_data.username}",
+            user_id=user.id,
+            action="LOGIN",
+            details="Successful login",
+            ip_address=request.client.host
+        )
+        
+        return {
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "token_type": "bearer"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        await log_security_event(
+            db=db,
+            user_id=0,
+            action="LOGIN_ERROR",
+            details=f"Unexpected error during login: {str(e)}",
             ip_address=request.client.host
         )
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred during login"
         )
-
-    # Check if MFA is required
-    if user.mfa_enabled and not form_data.mfa_token:
-        return {"requires_mfa": True}
-    
-    if user.mfa_enabled:
-        if not verify_mfa_token(user.mfa_secret, form_data.mfa_token):
-            await log_security_event(
-                db=db,
-                user_id=user.id,
-                action="MFA_FAILED",
-                details="Invalid MFA token provided",
-                ip_address=request.client.host
-            )
-            raise HTTPException(status_code=401, detail="Invalid MFA token")
-
-    # Generate tokens
-    access_token = create_access_token(data={"sub": user.username})
-    refresh_token = create_refresh_token(data={"sub": user.username})
-    
-    # Log successful login
-    await log_security_event(
-        db=db,
-        user_id=user.id,
-        action="LOGIN",
-        details="Successful login",
-        ip_address=request.client.host
-    )
-    
-    return {
-        "access_token": access_token,
-        "refresh_token": refresh_token,
-        "token_type": "bearer"
-    }
 
 @router.post("/refresh")
 @rate_limit

@@ -3,11 +3,14 @@ import axios from 'axios';
 const API_URL = 'https://fatakeshto-application.onrender.com';
 
 const authService = {
-    login: async (username, password) => {
+    login: async (username, password, mfaToken = null) => {
         try {
             const formData = new URLSearchParams();
             formData.append('username', username);
             formData.append('password', password);
+            if (mfaToken) {
+                formData.append('mfa_token', mfaToken);
+            }
 
             const response = await axios.post(`${API_URL}/api/auth/token`, formData, {
                 headers: {
@@ -16,6 +19,10 @@ const authService = {
                 }
             });
 
+            if (response.data.requires_mfa) {
+                return { requires_mfa: true };
+            }
+
             if (response.data.access_token) {
                 localStorage.setItem('user', JSON.stringify(response.data));
             }
@@ -23,8 +30,10 @@ const authService = {
         } catch (error) {
             if (error.response?.status === 422) {
                 throw { detail: 'Invalid username or password format' };
+            } else if (error.response?.status === 401) {
+                throw { detail: error.response.data.detail || 'Authentication failed' };
             }
-            throw error.response?.data || { detail: 'An error occurred during login' };
+            throw { detail: 'An error occurred during login' };
         }
     },
 

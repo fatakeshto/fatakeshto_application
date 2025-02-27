@@ -29,11 +29,13 @@ export const login = async (credentials) => {
     if (credentials.mfa_token) {
         formData.append('mfa_token', credentials.mfa_token);
     }
-    return api.post('/api/auth/token', formData, {
+    const response = await api.post('/api/auth/token', formData, {
         headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Accept': 'application/json'
         }
     });
+    return response.data;
 };
 export const register = (userData) => api.post('/api/auth/register', userData);
 
