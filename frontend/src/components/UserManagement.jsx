@@ -111,13 +111,18 @@ const UserManagement = () => {
     setError('');
 
     try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Authentication token not found');
+      }
+
       if (selectedUser) {
         // Update existing user
         await axios.put(
           `https://fatakeshto-application.onrender.com/api/admin/users/${selectedUser.id}`,
           formData,
           {
-            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+            headers: { Authorization: `Bearer ${token}` },
           }
         );
         showSnackbar('User updated successfully');
@@ -127,7 +132,7 @@ const UserManagement = () => {
           'https://fatakeshto-application.onrender.com/api/admin/users',
           formData,
           {
-            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+            headers: { Authorization: `Bearer ${token}` },
           }
         );
         showSnackbar('User created successfully');
