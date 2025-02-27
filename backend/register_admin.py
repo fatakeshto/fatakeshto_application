@@ -1,7 +1,7 @@
 import requests
 
 # Registration endpoint
-url = 'https://fatakeshto-application.onrender.com/auth/register'
+url = 'https://fatakeshto-application.onrender.com/api/auth/register'
 
 # Admin user credentials
 user_data = {

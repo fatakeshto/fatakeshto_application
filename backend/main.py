@@ -28,7 +28,7 @@ from routers import auth, devices, admin
 # Mount authentication router with proper prefix and tags
 app.include_router(
     auth.router,
-    prefix="/auth",
+    prefix="/api/auth",
     tags=["Authentication"]
 )
 
