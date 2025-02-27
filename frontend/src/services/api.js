@@ -22,7 +22,7 @@ api.interceptors.request.use(
 );
 
 // Auth endpoints
-export const login = (credentials) => api.post('/auth/login', credentials);
+export const login = (credentials) => api.post('/auth/token', credentials);
 export const register = (userData) => api.post('/auth/register', userData);
 
 // Device endpoints
