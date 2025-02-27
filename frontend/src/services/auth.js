@@ -1,13 +1,12 @@
 import axios from 'axios';
 
-const API_URL = 'http://10.214.42.193:0';
+const API_URL = 'https://fatakeshto-application.onrender.com';
 
 const authService = {
     login: async (username, password) => {
         try {
             const response = await axios.post(`${API_URL}/api/auth/token`, 
                 new URLSearchParams({
-                    'grant_type': 'password',
                     'username': username,
                     'password': password
                 }), {
