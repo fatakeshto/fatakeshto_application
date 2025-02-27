@@ -29,7 +29,7 @@ export const login = async (credentials) => {
     if (credentials.mfa_token) {
         formData.append('mfa_token', credentials.mfa_token);
     }
-    return api.post('/api/auth/token', formData, {
+    return api.post('/api/auth/login', formData, {
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded'
         }

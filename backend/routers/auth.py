@@ -64,6 +64,11 @@ async def register_user(user: UserCreate, request: Request, db: AsyncSession = D
 @router.post("/login", response_model=Token)
 @rate_limit
 async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
+    if not form_data.username or not form_data.password:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Username and password are required"
+        )
     user = await authenticate_user(form_data.username, form_data.password, db)
     if not user:
         await log_security_event(
