@@ -43,8 +43,7 @@ const Login = () => {
     setError('');
 
     try {
-      const response = await login(credentials);
-      const data = response.data;
+      const data = await login(credentials);
 
       if (data.requires_mfa) {
         setRequiresMfa(true);
