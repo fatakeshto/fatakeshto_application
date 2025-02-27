@@ -24,13 +24,12 @@ api.interceptors.request.use(
 // Auth endpoints
 export const login = async (credentials) => {
     const formData = new URLSearchParams();
-    formData.append('grant_type', 'password');
     formData.append('username', credentials.username);
     formData.append('password', credentials.password);
     if (credentials.mfa_token) {
         formData.append('mfa_token', credentials.mfa_token);
     }
-    return api.post('/api/auth/login', formData.toString(), {
+    return api.post('/api/auth/token', formData, {
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded'
         }
