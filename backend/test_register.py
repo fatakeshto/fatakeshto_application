@@ -8,7 +8,7 @@ user_data = {
     'username': 'fatakeshto',
     'password': 'Fatakeshto@123',  # Strong password that meets validation requirements
     'email': 'fatakeshto@example.com',
-    'role': 'user'
+    'role': 'admin'
 }
 
 # Attempt registration
