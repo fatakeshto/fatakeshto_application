@@ -13,6 +13,7 @@ import pyotp
 from ratelimit import limits, sleep_and_retry
 import os
 from dotenv import load_dotenv
+from database import get_db
 
 # Load environment variables
 load_dotenv()
@@ -37,9 +38,11 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
 # Rate limiting decorator
 @sleep_and_retry
 @limits(calls=MAX_REQUESTS_PER_MINUTE, period=60)
-def rate_limit():
-    """Rate limiting utility function"""
-    pass
+def rate_limit(func):
+    """Rate limiting decorator function"""
+    def wrapper(*args, **kwargs):
+        return func(*args, **kwargs)
+    return wrapper
 
 def get_password_hash(password: str) -> str:
     """Generate a secure password hash using bcrypt"""

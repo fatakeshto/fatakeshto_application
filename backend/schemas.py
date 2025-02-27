@@ -156,3 +156,44 @@ class PasswordResetRequest(BaseModel):
 class PasswordResetConfirm(BaseModel):
     token: str
     new_password: str
+
+# Command schemas
+class CommandRequest(BaseModel):
+    command: str
+    args: Optional[List[str]] = None
+
+    class Config:
+        orm_mode = True
+
+class CommandLogOut(BaseModel):
+    id: Optional[int] = None
+    device_id: int
+    command: str
+    output: str
+    executed_at: datetime = Field(default_factory=datetime.utcnow)
+    status: CommandStatus = Field(default=CommandStatus.COMPLETED)
+
+    class Config:
+        orm_mode = True
+
+class ProcessRequest(BaseModel):
+    action: ProcessAction
+    process_name: Optional[str] = None
+
+    class Config:
+        orm_mode = True
+
+class ClipboardRequest(BaseModel):
+    action: ClipboardAction
+    content: Optional[str] = None
+
+    class Config:
+        orm_mode = True
+
+class FileOperation(BaseModel):
+    operation_type: FileOperationType
+    file_path: str
+    new_name: Optional[str] = None
+
+    class Config:
+        from_attributes = True
