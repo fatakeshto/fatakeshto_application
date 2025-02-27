@@ -74,16 +74,21 @@ async def authenticate_user(username: str, password: str, db: AsyncSession) -> O
         user = result.scalars().first()
         
         if not user or not verify_password(password, user.hashed_password):
-            logger.warning(f"Failed login attempt for username: {username}")
+            db_logger.warning(f"Failed login attempt for username: {username}")
             return None
             
         # Reset login attempts on successful login
         user.last_login = datetime.utcnow()
         await db.commit()
+        db_logger.info(f"Successful login for user: {username}")
         
         return user
     except Exception as e:
-        logger.error(f"Authentication error: {str(e)}")
+        error_info = log_db_error(
+            error=e,
+            operation='authenticate_user',
+            details=f'Failed authentication attempt for username: {username}'
+        )
         raise HTTPException(status_code=500, detail="Authentication error")
 
 async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)) -> User:
