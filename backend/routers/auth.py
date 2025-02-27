@@ -15,7 +15,7 @@ import qrcode
 import io
 import base64
 
-router = APIRouter(prefix="/auth", tags=["Authentication"])
+router = APIRouter(tags=["Authentication"])
 
 @router.post("/register", response_model=UserOut)
 @rate_limit

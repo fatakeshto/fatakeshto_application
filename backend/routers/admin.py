@@ -15,7 +15,7 @@ import csv
 from fastapi.responses import StreamingResponse
 from io import StringIO
 
-router = APIRouter(prefix="/admin", tags=["admin"])
+router = APIRouter(tags=["admin"])
 
 @router.get("/users", response_model=List[UserOut])
 async def list_users(skip: int = 0, limit: int = 100, current_user: User = Depends(get_current_admin_user),

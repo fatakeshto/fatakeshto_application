@@ -14,7 +14,7 @@ from schemas import (
 from utils import get_current_user, verify_device_token
 import logging
 
-router = APIRouter(prefix="/devices", tags=["Devices"])
+router = APIRouter(tags=["Devices"])
 logger = logging.getLogger(__name__)
 
 @router.post("/{device_id}/execute", response_model=CommandLogOut)
