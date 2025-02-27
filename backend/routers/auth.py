@@ -11,6 +11,7 @@ from utils import (
     verify_mfa_token, generate_mfa_secret, log_security_event, rate_limit
 )
 from database import get_db
+from services.db_logger import log_db_operation, log_db_error, db_logger
 import qrcode
 import io
 import base64
@@ -65,14 +66,25 @@ async def register_user(user: UserCreate, request: Request, db: AsyncSession = D
 @rate_limit
 async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
     if not form_data.username or not form_data.password:
+        error_info = log_db_error(
+            error=Exception("Missing credentials"),
+            operation="login_validation",
+            details="Username and password fields are required but not provided"
+        )
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Username and password are required"
         )
 
     try:
+        db_logger.info(f"Login attempt for user: {form_data.username}")
         user = await authenticate_user(form_data.username, form_data.password, db)
         if not user:
+            error_info = log_db_error(
+                error=Exception("Authentication failed"),
+                operation="login",
+                details=f"Failed login attempt for username: {form_data.username}"
+            )
             await log_security_event(
                 db=db,
                 user_id=0,  # 0 indicates failed login attempt
