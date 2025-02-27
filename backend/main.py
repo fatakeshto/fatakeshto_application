@@ -23,11 +23,10 @@ async def health_check():
     return JSONResponse({"status": "healthy"})
 
 # Import and include routers
-# These will be uncommented as we create the respective modules
-# from routers import auth, devices, admin
-# app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
-# app.include_router(devices.router, prefix="/devices", tags=["Devices"])
-# app.include_router(admin.router, prefix="/admin", tags=["Admin"])
+from routers import auth, devices, admin
+app.include_router(auth.router)
+app.include_router(devices.router, prefix="/devices", tags=["Devices"])
+app.include_router(admin.router, prefix="/admin", tags=["Admin"])
 
 if __name__ == "__main__":
     import uvicorn
