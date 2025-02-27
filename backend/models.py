@@ -29,10 +29,10 @@ class User(Base):
     hashed_password = Column(String)
     role = Column(Enum(UserRole), default=UserRole.STANDARD)
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    last_login = Column(DateTime, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    last_login = Column(DateTime(timezone=True), nullable=True)
     mfa_enabled = Column(Boolean, default=False)
-    mfa_secret = Column(String, nullable=True)
+    mfa_secret = Column(String(255), nullable=True)
 
     # Relationships
     devices = relationship("Device", back_populates="owner", cascade="all, delete-orphan")
@@ -47,10 +47,10 @@ class Device(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     token = Column(String, unique=True)
     status = Column(Enum(DeviceStatus), default=DeviceStatus.OFFLINE)
-    last_seen = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    ip_address = Column(String, nullable=True)
-    os_info = Column(String, nullable=True)
+    last_seen = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    ip_address = Column(String(255), nullable=True)
+    os_info = Column(String(255), nullable=True)
 
     # Relationships
     owner = relationship("User", back_populates="devices")
@@ -64,7 +64,7 @@ class CommandLog(Base):
     device_id = Column(Integer, ForeignKey("devices.id"))
     command = Column(String)
     output = Column(Text)
-    timestamp = Column(DateTime, default=datetime.utcnow)
+    timestamp = Column(DateTime(timezone=True), default=datetime.utcnow)
     status = Column(Enum(CommandStatus), default=CommandStatus.COMPLETED)
     error_message = Column(Text, nullable=True)
 
@@ -78,8 +78,8 @@ class AuditLog(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     action = Column(String)
     details = Column(Text)
-    timestamp = Column(DateTime, default=datetime.utcnow)
-    ip_address = Column(String, nullable=True)
+    timestamp = Column(DateTime(timezone=True), default=datetime.utcnow)
+    ip_address = Column(String(255), nullable=True)
 
     # Relationships
     user = relationship("User", back_populates="audit_logs")
@@ -90,8 +90,8 @@ class PasswordResetToken(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     token = Column(String, unique=True)
-    expires_at = Column(DateTime)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    expires_at = Column(DateTime(timezone=True))
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     is_used = Column(Boolean, default=False)
 
     # Relationships
@@ -103,10 +103,10 @@ class CommandQueue(Base):
     id = Column(Integer, primary_key=True, index=True)
     device_id = Column(Integer, ForeignKey("devices.id"))
     command = Column(String)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     status = Column(Enum(CommandStatus), default=CommandStatus.PENDING)
     priority = Column(Integer, default=0)
-    execute_after = Column(DateTime, nullable=True)
+    execute_after = Column(DateTime(timezone=True), nullable=True)
 
     # Relationships
     device = relationship("Device", back_populates="queued_commands")
