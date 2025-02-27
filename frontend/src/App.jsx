@@ -195,6 +195,7 @@ const App = () => {
             </PrivateRoute>
           }
         />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </Router>
   );
