@@ -22,7 +22,19 @@ api.interceptors.request.use(
 );
 
 // Auth endpoints
-export const login = (credentials) => api.post('/api/auth/token', credentials);
+const login = (credentials) => {
+    const formData = new URLSearchParams();
+    formData.append('username', credentials.username);
+    formData.append('password', credentials.password);
+    if (credentials.mfa_token) {
+        formData.append('mfa_token', credentials.mfa_token);
+    }
+    return api.post('/api/auth/login', formData, {
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        }
+    });
+};
 export const register = (userData) => api.post('/api/auth/register', userData);
 
 // Device endpoints
