@@ -4,13 +4,29 @@ from sqlalchemy.ext.declarative import declarative_base
 from os import getenv
 
 # Get database URL from environment variable with asyncpg driver
+from urllib.parse import quote_plus
+
+# Get database URL from environment variable with asyncpg driver
 DATABASE_URL = getenv(
     "DATABASE_URL",
-    "postgresql+asyncpg://user:password@localhost:5432/fatakeshto?sslmode=require"
+    f"postgresql+asyncpg://neondb_owner:{quote_plus('npg_efE9hVpwUM5n')}@ep-patient-truth-a15jezae-pooler.ap-southeast-1.aws.neon.tech/neondb"
 )
 
-# Create async SQLAlchemy engine
-engine = create_async_engine(DATABASE_URL, echo=True)
+import ssl
+
+# Create SSL context with certificate verification disabled
+ssl_context = ssl.create_default_context()
+ssl_context.check_hostname = False
+ssl_context.verify_mode = ssl.CERT_NONE
+
+# Create async SQLAlchemy engine with SSL configuration
+engine = create_async_engine(
+    DATABASE_URL,
+    echo=True,
+    connect_args={
+        "ssl": ssl_context
+    }
+)
 
 # Create AsyncSessionLocal class
 AsyncSessionLocal = sessionmaker(
