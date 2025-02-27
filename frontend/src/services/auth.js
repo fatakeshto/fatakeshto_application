@@ -5,11 +5,11 @@ const API_URL = 'https://fatakeshto-application.onrender.com';
 const authService = {
     login: async (username, password) => {
         try {
-            const response = await axios.post(`${API_URL}/api/auth/token`, 
-                new URLSearchParams({
-                    'username': username,
-                    'password': password
-                }), {
+            const formData = new FormData();
+            formData.append('username', username);
+            formData.append('password', password);
+
+            const response = await axios.post(`${API_URL}/api/auth/token`, formData, {
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                     'Accept': 'application/json'
