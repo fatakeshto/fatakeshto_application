@@ -24,7 +24,8 @@ const authService = {
             }
 
             if (response.data.access_token) {
-                localStorage.setItem('user', JSON.stringify(response.data));
+                localStorage.setItem('token', response.data.access_token);
+                localStorage.setItem('role', response.data.role);
             }
             return response.data;
         } catch (error) {
