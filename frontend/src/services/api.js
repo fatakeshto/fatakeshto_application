@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'https://fatakeshto-application.onrender.com/api';
+const API_BASE_URL = 'https://fatakeshto-application.onrender.com';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -22,26 +22,26 @@ api.interceptors.request.use(
 );
 
 // Auth endpoints
-export const login = (credentials) => api.post('/auth/token', credentials);
-export const register = (userData) => api.post('/auth/register', userData);
+export const login = (credentials) => api.post('/api/auth/token', credentials);
+export const register = (userData) => api.post('/api/auth/register', userData);
 
 // Device endpoints
-export const getDevices = () => api.get('/devices');
-export const executeCommand = (deviceId, command) => api.post(`/devices/${deviceId}/execute`, { command });
+export const getDevices = () => api.get('/api/devices');
+export const executeCommand = (deviceId, command) => api.post(`/api/devices/${deviceId}/execute`, { command });
 export const uploadFile = (deviceId, file) => {
   const formData = new FormData();
   formData.append('file', file);
-  return api.post(`/devices/${deviceId}/upload`, formData, {
+  return api.post(`/api/devices/${deviceId}/upload`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
 };
 
 // File management endpoints
-export const listFiles = (deviceId, path) => api.get(`/devices/${deviceId}/files`, { params: { path } });
-export const createFolder = (deviceId, path) => api.post(`/devices/${deviceId}/files/folder`, { path });
-export const deleteFile = (deviceId, path) => api.delete(`/devices/${deviceId}/files`, { params: { path } });
+export const listFiles = (deviceId, path) => api.get(`/api/devices/${deviceId}/files`, { params: { path } });
+export const createFolder = (deviceId, path) => api.post(`/api/devices/${deviceId}/files/folder`, { path });
+export const deleteFile = (deviceId, path) => api.delete(`/api/devices/${deviceId}/files`, { params: { path } });
 
 // Live monitoring endpoints
-export const getDeviceMetrics = (deviceId) => api.get(`/devices/${deviceId}/metrics`);
+export const getDeviceMetrics = (deviceId) => api.get(`/api/devices/${deviceId}/metrics`);
 
 export default api;
