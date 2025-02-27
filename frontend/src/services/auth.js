@@ -42,6 +42,28 @@ const authService = {
         localStorage.removeItem('user');
     },
 
+    register: async (userData) => {
+        try {
+            const response = await axios.post(`${API_URL}/api/auth/register`, {
+                email: userData.email,
+                username: userData.username,
+                password: userData.password,
+                role: userData.role || 'standard'
+            }, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                }
+            });
+            return response.data;
+        } catch (error) {
+            if (error.response?.status === 422) {
+                throw { detail: error.response.data.detail || 'Invalid registration data' };
+            }
+            throw { detail: 'An error occurred during registration' };
+        }
+    },
+
     getCurrentUser: () => {
         const userStr = localStorage.getItem('user');
         if (userStr) return JSON.parse(userStr);
