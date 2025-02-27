@@ -1,17 +1,19 @@
 import axios from 'axios';
 
-const API_URL = 'https://fatakeshto-application.onrender.com';
+const API_URL = 'http://10.214.42.193:0';
 
 const authService = {
     login: async (username, password) => {
         try {
             const response = await axios.post(`${API_URL}/api/auth/token`, 
                 new URLSearchParams({
+                    'grant_type': 'password',
                     'username': username,
                     'password': password
                 }), {
                 headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Accept': 'application/json'
                 }
             });
 
@@ -20,6 +22,9 @@ const authService = {
             }
             return response.data;
         } catch (error) {
+            if (error.response?.status === 422) {
+                throw { detail: 'Invalid username or password format' };
+            }
             throw error.response?.data || { detail: 'An error occurred during login' };
         }
     },
