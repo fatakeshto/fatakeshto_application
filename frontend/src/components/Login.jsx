@@ -11,16 +11,18 @@ import {
 } from '@mui/material';
 import { Login as LoginIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { login } from '../services/api';
 
 const Login = () => {
   const navigate = useNavigate();
   const [credentials, setCredentials] = useState({
     username: '',
     password: '',
+    mfa_token: ''
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [requiresMfa, setRequiresMfa] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -41,28 +43,18 @@ const Login = () => {
     setError('');
 
     try {
-      const formData = new URLSearchParams();
-      formData.append('username', credentials.username);
-      formData.append('password', credentials.password);
-      
-      const response = await axios.post(
-        'https://fatakeshto-application.onrender.com/api/auth/login',
-        formData.toString(),
-        {
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-          }
-        }
-      );
+      const response = await login(credentials);
+      const data = response.data;
 
-      if (response.data.requires_mfa) {
-        // Handle MFA requirement here
-        setError('MFA authentication required');
+      if (data.requires_mfa) {
+        setRequiresMfa(true);
+        setError('Please enter your MFA code');
+        setLoading(false);
         return;
       }
 
-      localStorage.setItem('token', response.data.access_token);
-      localStorage.setItem('refresh_token', response.data.refresh_token);
+      localStorage.setItem('token', data.access_token);
+      localStorage.setItem('refresh_token', data.refresh_token);
       navigate('/dashboard');
     } catch (error) {
       setError(
@@ -129,6 +121,19 @@ const Login = () => {
               value={credentials.password}
               onChange={handleChange}
             />
+            {requiresMfa && (
+              <TextField
+                margin="normal"
+                required
+                fullWidth
+                name="mfa_token"
+                label="MFA Code"
+                type="text"
+                id="mfa_token"
+                value={credentials.mfa_token}
+                onChange={handleChange}
+              />
+            )}
             <Button
               type="submit"
               fullWidth
