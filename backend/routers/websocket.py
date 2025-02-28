@@ -1,9 +1,9 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Dict, Set
-from ..database import get_db
-from ..models import Device, User
-from ..utils import get_current_user
+from database import get_db
+from models import Device, User
+from utils import get_current_user
 import json
 from datetime import datetime
 
