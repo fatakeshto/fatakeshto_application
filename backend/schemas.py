@@ -41,7 +41,7 @@ class TimestampModel(BaseModel):
     updated_at: Optional[datetime] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 # User schemas
 class UserBase(BaseModel):
@@ -68,7 +68,7 @@ class UserOut(UserBase):
     mfa_enabled: bool
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class User(UserBase):
     id: int
@@ -79,7 +79,7 @@ class User(UserBase):
     mfa_enabled: bool
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 # Device schemas
 class DeviceBase(BaseModel):
@@ -98,18 +98,6 @@ class DeviceUpdate(BaseModel):
 class Device(DeviceBase):
     id: int
     owner_id: int
-
-# Audit Log schemas
-class AuditLogResponse(BaseModel):
-    id: int
-    timestamp: datetime
-    user_id: int
-    action: str
-    details: str
-    ip_address: Optional[str]
-
-    class Config:
-        orm_mode = True
     is_online: bool
     last_seen: Optional[datetime]
     created_at: datetime
@@ -117,7 +105,7 @@ class AuditLogResponse(BaseModel):
     os_info: Optional[str]
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 # Log schemas
 class DeviceLogBase(BaseModel):
@@ -134,7 +122,7 @@ class DeviceLog(DeviceLogBase):
     status: str
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class AuditLogBase(BaseModel):
     action: str
@@ -150,7 +138,7 @@ class AuditLog(AuditLogBase):
     ip_address: Optional[str]
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 # Token schemas
 class Token(BaseModel):
@@ -175,7 +163,7 @@ class CommandRequest(BaseModel):
     args: Optional[List[str]] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class CommandLogOut(BaseModel):
     id: Optional[int] = None
@@ -186,30 +174,27 @@ class CommandLogOut(BaseModel):
     status: CommandStatus = Field(default=CommandStatus.COMPLETED)
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class ProcessRequest(BaseModel):
     action: ProcessAction
     process_name: Optional[str] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class ClipboardRequest(BaseModel):
     action: ClipboardAction
     content: Optional[str] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class FileOperation(BaseModel):
     operation_type: FileOperationType
     file_path: str
     new_path: Optional[str] = None  # Used for rename operations
     content: Optional[str] = None   # Used for upload operations
-
-    class Config:
-        orm_mode = True
 
     class Config:
         from_attributes = True
