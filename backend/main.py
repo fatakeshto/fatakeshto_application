@@ -1,8 +1,8 @@
 from fastapi import FastAPI, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
-from .database import engine, Base, get_db
-from .routers import auth, devices, admin
-from .services import tasks
+from database import engine, Base, get_db
+from routers import auth, devices, admin
+from services import tasks
 import logging
 from logging.handlers import RotatingFileHandler
 from collections import defaultdict
