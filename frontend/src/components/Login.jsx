@@ -52,16 +52,11 @@ const Login = () => {
         return;
       }
 
-      localStorage.setItem('token', data.access_token);
-      localStorage.setItem('refresh_token', data.refresh_token);
-      navigate('/dashboard');
+      if (data.access_token) {
+        navigate('/dashboard');
+      }
     } catch (error) {
-      setError(
-        error.response?.data?.detail ||
-        error.response?.data?.message ||
-        'Login failed. Please try again.'
-      );
-      console.error('Login error:', error);
+      setError(error.message || 'Login failed. Please check your credentials.');
     } finally {
       setLoading(false);
     }

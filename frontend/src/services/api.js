@@ -23,19 +23,33 @@ api.interceptors.request.use(
 
 // Auth endpoints
 export const login = async (credentials) => {
-    const formData = new URLSearchParams();
-    formData.append('username', credentials.username);
-    formData.append('password', credentials.password);
-    if (credentials.mfa_token) {
-        formData.append('mfa_token', credentials.mfa_token);
-    }
-    const response = await api.post('/api/auth/token', formData, {
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'Accept': 'application/json'
+    try {
+        const formData = new URLSearchParams();
+        formData.append('username', credentials.username.trim());
+        formData.append('password', credentials.password);
+        if (credentials.mfa_token) {
+            formData.append('mfa_token', credentials.mfa_token.trim());
         }
-    });
-    return response.data;
+        
+        const response = await api.post('/api/auth/token', formData.toString(), {
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Accept': 'application/json'
+            }
+        });
+        
+        if (response.data.access_token) {
+            localStorage.setItem('token', response.data.access_token);
+            localStorage.setItem('role', response.data.role);
+        }
+        
+        return response.data;
+    } catch (error) {
+        if (error.response && error.response.status === 422) {
+            throw new Error('Invalid credentials format. Please check your input.');
+        }
+        throw error;
+    }
 };
 export const register = (userData) => api.post('/api/auth/register', userData);
 
