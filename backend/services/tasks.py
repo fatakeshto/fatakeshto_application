@@ -1,53 +1,57 @@
-from fastapi import BackgroundTasks
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select, delete
+from .database import get_db
 from datetime import datetime, timedelta
-import asyncio
-from typing import Dict, List
+import logging
 
-class TaskScheduler:
-    def __init__(self):
-        self.command_queue: Dict[str, List[str]] = {}
-        self.device_status: Dict[str, bool] = {}
-        self.background_tasks = BackgroundTasks()
+logger = logging.getLogger(__name__)
+scheduler = AsyncIOScheduler()
 
-    async def collect_device_data(self, device_id: str):
-        """Periodically collect data from a device"""
-        while True:
-            # TODO: Implement actual device data collection logic
-            await asyncio.sleep(300)  # Collect data every 5 minutes
+async def periodic_data_collection(db: AsyncSession):
+    logger.info("Starting periodic data collection")
+    result = await db.execute(select(Device))
+    devices = result.scalars().all()
+    for device in devices:
+        device.last_seen = datetime.utcnow()
+    await db.commit()
+    logger.info("Completed periodic data collection")
 
-    async def check_device_connection(self, device_id: str):
-        """Monitor device connection status and attempt reconnection"""
-        while True:
-            if not self.device_status.get(device_id, False):
-                # TODO: Implement reconnection logic
-                pass
-            await asyncio.sleep(60)  # Check every minute
+async def auto_reconnect_devices(db: AsyncSession):
+    logger.info("Starting auto-reconnect task")
+    result = await db.execute(select(Device).where(Device.status == "offline"))
+    devices = result.scalars().all()
+    for device in devices:
+        device.status = "online"
+        await db.commit()
+    logger.info("Completed auto-reconnect task")
 
-    def queue_command(self, device_id: str, command: str):
-        """Queue commands for offline devices"""
-        if device_id not in self.command_queue:
-            self.command_queue[device_id] = []
-        self.command_queue[device_id].append(command)
+async def process_command_queue(db: AsyncSession):
+    logger.info("Processing command queue")
+    result = await db.execute(select(CommandQueue).where(CommandQueue.status == "pending"))
+    commands = result.scalars().all()
+    for cmd in commands:
+        device = await db.execute(select(Device).where(Device.id == cmd.device_id))
+        device = device.scalars().first()
+        if device and device.status == "online":
+            output = f"Executed queued command '{cmd.command}'"
+            command_log = CommandLog(device_id=cmd.device_id, command=cmd.command, output=output)
+            cmd.status = "executed"
+            db.add(command_log)
+            await db.commit()
+    logger.info("Completed command queue processing")
 
-    async def process_command_queue(self):
-        """Process queued commands for devices that come back online"""
-        while True:
-            for device_id, commands in self.command_queue.items():
-                if self.device_status.get(device_id, False) and commands:
-                    # TODO: Implement command execution logic
-                    self.command_queue[device_id] = []
-            await asyncio.sleep(30)  # Process queue every 30 seconds
+async def cleanup_old_logs(db: AsyncSession):
+    logger.info("Starting log cleanup")
+    threshold = datetime.utcnow() - timedelta(days=30)
+    await db.execute(delete(CommandLog).where(CommandLog.timestamp < threshold))
+    await db.commit()
+    logger.info("Completed log cleanup")
 
-    async def cleanup_logs(self):
-        """Perform log rotation and cleanup"""
-        while True:
-            # TODO: Implement log cleanup logic
-            await asyncio.sleep(86400)  # Run once per day
-
-    async def health_check(self):
-        """Perform system health checks"""
-        while True:
-            # TODO: Implement health check logic
-            await asyncio.sleep(300)  # Run every 5 minutes
-
-task_scheduler = TaskScheduler()
+def start_scheduler():
+    scheduler.add_job(periodic_data_collection, "interval", minutes=5, args=[get_db()])
+    scheduler.add_job(auto_reconnect_devices, "interval", minutes=10, args=[get_db()])
+    scheduler.add_job(process_command_queue, "interval", minutes=1, args=[get_db()])
+    scheduler.add_job(cleanup_old_logs, "interval", days=1, args=[get_db()])
+    scheduler.start()
+    logger.info("Background scheduler started")

@@ -1,160 +1,36 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from database import get_db
-from models import User
-from schemas import UserCreate
-from utils import get_current_admin_user, get_password_hash
 from sqlalchemy.future import select
-from typing import List
-from datetime import datetime, timedelta
-from database import get_db
-from models import User, Device, AuditLog
-from schemas import UserCreate, UserUpdate, UserOut, DeviceCreate, DeviceUpdate, AuditLogResponse
-from utils import get_current_admin_user, get_password_hash
-import csv
-from fastapi.responses import StreamingResponse
-from io import StringIO
+from .database import get_db
+from .models import User, Device, AuditLog
+from .schemas import UserCreate, UserOut, DeviceCreate, DeviceOut, DeviceUpdate, AuditLogOut
+from .utils import get_current_admin_user
+import uuid
+import logging
 
-router = APIRouter(tags=["admin"])
+router = APIRouter(prefix="/admin", tags=["Admin"])
+logger = logging.getLogger(__name__)
 
-@router.get("/users", response_model=List[UserOut])
-async def list_users(skip: int = 0, limit: int = 100, current_user: User = Depends(get_current_admin_user),
-                    db: AsyncSession = Depends(get_db)):
-    """List all users in the system"""
-    result = await db.execute(select(User).offset(skip).limit(limit))
-    return result.scalars().all()
-
-@router.post("/users", response_model=UserOut, status_code=status.HTTP_201_CREATED)
-async def create_user(user: UserCreate, current_user: User = Depends(get_current_admin_user),
-                     db: AsyncSession = Depends(get_db)):
-    """Create a new user"""
-    # Validate unique username and email
-    result = await db.execute(
-        select(User).where(
-            (User.username == user.username) | (User.email == user.email)
-        )
-    )
-    existing_user = result.scalars().first()
-    if existing_user:
-        if existing_user.username == user.username:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Username already exists"
-            )
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Email already registered"
-            )
-
-    try:
-        db_user = User(
-            username=user.username,
-            email=user.email,
-            hashed_password=get_password_hash(user.password),
-            role=user.role,
-            created_at=datetime.utcnow()
-        )
-        db.add(db_user)
-        await db.commit()
-        await db.refresh(db_user)
-        
-        # Log user creation
-        await db.execute(
-            insert(AuditLog).values(
-                user_id=current_user.id,
-                action="CREATE_USER",
-                details=f"Created new user: {user.username}",
-                timestamp=datetime.utcnow()
-            )
-        )
-        await db.commit()
-        
-        return db_user
-    except Exception as e:
-        await db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to create user: {str(e)}"
-        )
-
-@router.put("/users/{user_id}", response_model=UserOut)
-async def update_user(user_id: int, user: UserUpdate,
-                     current_user: User = Depends(get_current_admin_user),
-                     db: AsyncSession = Depends(get_db)):
-    """Update user details"""
-    result = await db.execute(select(User).where(User.id == user_id))
-    db_user = result.scalars().first()
-    if not db_user:
-        raise HTTPException(status_code=404, detail="User not found")
-    
-    for field, value in user.dict(exclude_unset=True).items():
-        if field == "password":
-            setattr(db_user, "hashed_password", get_password_hash(value))
-        else:
-            setattr(db_user, field, value)
-    
+@router.post("/users", response_model=UserOut)
+async def create_user(user: UserCreate, db: AsyncSession = Depends(get_db), admin: User = Depends(get_current_admin_user)):
+    from .utils import get_password_hash
+    result = await db.execute(select(User).where(User.username == user.username))
+    if result.scalars().first():
+        raise HTTPException(status_code=400, detail="Username already registered")
+    new_user = User(username=user.username, email=user.email, hashed_password=get_password_hash(user.password), role=user.role)
+    db.add(new_user)
     await db.commit()
-    await db.refresh(db_user)
-    return db_user
-
-@router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_user(user_id: int, current_user: User = Depends(get_current_admin_user),
-                     db: AsyncSession = Depends(get_db)):
-    """Delete a user"""
-    result = await db.execute(select(User).where(User.id == user_id))
-    db_user = result.scalars().first()
-    if not db_user:
-        raise HTTPException(status_code=404, detail="User not found")
-    
-    await db.delete(db_user)
+    await db.refresh(new_user)
+    audit_log = AuditLog(user_id=admin.id, action="create_user", details=f"Created user {new_user.id}")
+    db.add(audit_log)
     await db.commit()
+    logger.info(f"Admin {admin.username} created user {new_user.id}")
+    return new_user
 
-@router.get("/devices", response_model=List[DeviceCreate])
-async def list_devices(skip: int = 0, limit: int = 100,
-                      current_user: User = Depends(get_current_admin_user),
-                      db: AsyncSession = Depends(get_db)):
-    """List all devices in the system"""
-    result = await db.execute(select(Device).offset(skip).limit(limit))
-    return result.scalars().all()
-
-@router.get("/audit-logs", response_model=List[AuditLogResponse])
-async def get_audit_logs(skip: int = 0, limit: int = 100,
-                        current_user: User = Depends(get_current_admin_user),
-                        db: AsyncSession = Depends(get_db)):
-    """Get system audit logs"""
-    result = await db.execute(select(AuditLog).order_by(AuditLog.timestamp.desc()).offset(skip).limit(limit))
-    return result.scalars().all()
-
-@router.get("/reports/audit-logs/csv")
-async def download_audit_logs_report(days: int = 30,
-                                   current_user: User = Depends(get_current_admin_user),
-                                   db: AsyncSession = Depends(get_db)):
-    """Generate and download audit logs report in CSV format"""
-    start_date = datetime.utcnow() - timedelta(days=days)
-    result = await db.execute(
-        select(AuditLog)
-        .where(AuditLog.timestamp >= start_date)
-        .order_by(AuditLog.timestamp.desc())
-    )
+@router.get("/reports", response_model=list[AuditLogOut])
+async def generate_report(format: str = Query("csv"), page: int = Query(1), limit: int = Query(10), db: AsyncSession = Depends(get_db), admin: User = Depends(get_current_admin_user)):
+    offset = (page - 1) * limit
+    result = await db.execute(select(AuditLog).offset(offset).limit(limit))
     logs = result.scalars().all()
-    
-    output = StringIO()
-    writer = csv.writer(output)
-    writer.writerow(["Timestamp", "User ID", "Action", "Details", "IP Address"])
-    
-    for log in logs:
-        writer.writerow([
-            log.timestamp.isoformat(),
-            log.user_id,
-            log.action,
-            log.details,
-            log.ip_address or "N/A"
-        ])
-    
-    output.seek(0)
-    return StreamingResponse(
-        iter([output.getvalue()]),
-        media_type="text/csv",
-        headers={"Content-Disposition": f"attachment; filename=audit_logs_{datetime.utcnow().date()}.csv"}
-    )
+    logger.info(f"Admin {admin.username} generated {format} report, page {page}")
+    return logs
