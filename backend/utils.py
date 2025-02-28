@@ -1,5 +1,6 @@
 import os
 import secrets
+from typing import Optional
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 from datetime import datetime, timedelta

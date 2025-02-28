@@ -4,7 +4,7 @@ from sqlalchemy.future import select
 from database import get_db
 from models import User, Device, AuditLog
 from schemas import UserCreate, UserOut, DeviceCreate, DeviceOut, DeviceUpdate, AuditLogOut
-from utils import get_current_admin_user
+from utils import get_current_admin_user, get_password_hash
 import uuid
 import logging
 
