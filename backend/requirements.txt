@@ -5,3 +5,4 @@ asyncpg
 python-jose==3.3.0
 passlib[bcrypt]==1.7.4
 apscheduler==3.7.0
+python-multipart==0.0.6
