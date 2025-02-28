@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.security import OAuth2PasswordBearer
 from fastapi import Depends, HTTPException, status
 from database import get_db
+from models import User
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 SECRET_KEY = os.environ.get("SECRET_KEY", secrets.token_hex(32))
