@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from backend.database import get_db
-from backend.models import User, Device, AuditLog
-from backend.schemas import UserCreate, UserOut, DeviceCreate, DeviceOut, DeviceUpdate, AuditLogOut
-from backend.utils import get_current_admin_user
+from ..database import get_db
+from ..models import User, Device, AuditLog
+from ..schemas import UserCreate, UserOut, DeviceCreate, DeviceOut, DeviceUpdate, AuditLogOut
+from ..utils import get_current_admin_user
 import uuid
 import logging
 
