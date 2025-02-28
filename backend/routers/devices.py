@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select, update
-from .database import get_db
-from .models import Device, CommandLog, CommandQueue
-from .schemas import CommandRequest, CommandLogOut, FileOperation, ProcessRequest, ClipboardRequest, DeviceOut
-from .utils import get_current_user, verify_device_token
+from backend.database import get_db
+from backend.models import Device, CommandLog, CommandQueue
+from backend.schemas import CommandRequest, CommandLogOut, FileOperation, ProcessRequest, ClipboardRequest, DeviceOut
+from backend.utils import get_current_user, verify_device_token
 import json
 import logging
 
