@@ -9,7 +9,7 @@ from fastapi.security import OAuth2PasswordBearer
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.future import select
 from database import get_db
-from models import User, PasswordResetToken
+from models import User, PasswordResetToken, Device
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 SECRET_KEY = os.environ.get("SECRET_KEY", secrets.token_hex(32))
@@ -76,3 +76,27 @@ async def get_current_admin_user(current_user: User = Depends(get_current_user))
             detail="Not authorized to perform this action"
         )
     return current_user
+
+async def verify_device_token(device_id: int, token: str, db: AsyncSession) -> Device:
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        token_device_id = payload.get("device_id")
+        if token_device_id is None or int(token_device_id) != device_id:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid device token"
+            )
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate device token"
+        )
+    
+    result = await db.execute(select(Device).where(Device.id == device_id))
+    device = result.scalars().first()
+    if device is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Device not found"
+        )
+    return device
