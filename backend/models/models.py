@@ -1,8 +1,8 @@
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Text, Enum
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Enum, Text
 from sqlalchemy.orm import relationship
 from datetime import datetime
-import enum
 from database import Base
+import enum
 
 class UserRole(str, enum.Enum):
     ADMIN = "admin"
@@ -12,13 +12,12 @@ class UserRole(str, enum.Enum):
 class DeviceStatus(str, enum.Enum):
     ONLINE = "online"
     OFFLINE = "offline"
-    MAINTENANCE = "maintenance"
 
 class CommandStatus(str, enum.Enum):
     PENDING = "pending"
+    RUNNING = "running"
     COMPLETED = "completed"
     FAILED = "failed"
-    EXECUTING = "executing"
 
 class User(Base):
     __tablename__ = "users"
@@ -43,42 +42,27 @@ class Device(Base):
     __tablename__ = "devices"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    token = Column(String, unique=True)
+    name = Column(String(255))
+    device_type = Column(String(50))
     status = Column(Enum(DeviceStatus), default=DeviceStatus.OFFLINE)
     last_seen = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
-    ip_address = Column(String(255), nullable=True)
-    os_info = Column(String(255), nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    token = Column(String(255), unique=True)
 
     # Relationships
     owner = relationship("User", back_populates="devices")
     command_logs = relationship("CommandLog", back_populates="device", cascade="all, delete-orphan")
-    queued_commands = relationship("CommandQueue", back_populates="device", cascade="all, delete-orphan")
-
-class CommandLog(Base):
-    __tablename__ = "command_logs"
-
-    id = Column(Integer, primary_key=True, index=True)
-    device_id = Column(Integer, ForeignKey("devices.id"))
-    command = Column(String)
-    output = Column(Text)
-    timestamp = Column(DateTime(timezone=True), default=datetime.utcnow)
-    status = Column(Enum(CommandStatus), default=CommandStatus.COMPLETED)
-    error_message = Column(Text, nullable=True)
-
-    # Relationships
-    device = relationship("Device", back_populates="command_logs")
+    command_queue = relationship("CommandQueue", back_populates="device", cascade="all, delete-orphan")
 
 class AuditLog(Base):
     __tablename__ = "audit_logs"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    action = Column(String)
-    details = Column(Text)
     timestamp = Column(DateTime(timezone=True), default=datetime.utcnow)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    action = Column(String(255))
+    details = Column(Text, nullable=True)
     ip_address = Column(String(255), nullable=True)
 
     # Relationships
@@ -89,24 +73,37 @@ class PasswordResetToken(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
-    token = Column(String, unique=True)
-    expires_at = Column(DateTime(timezone=True))
+    token = Column(String(255), unique=True)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    expires_at = Column(DateTime(timezone=True))
     is_used = Column(Boolean, default=False)
 
     # Relationships
     user = relationship("User", back_populates="reset_tokens")
+
+class CommandLog(Base):
+    __tablename__ = "command_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    device_id = Column(Integer, ForeignKey("devices.id"))
+    command = Column(String(255))
+    output = Column(Text, nullable=True)
+    status = Column(Enum(CommandStatus), default=CommandStatus.PENDING)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    completed_at = Column(DateTime(timezone=True), nullable=True)
+
+    # Relationships
+    device = relationship("Device", back_populates="command_logs")
 
 class CommandQueue(Base):
     __tablename__ = "command_queue"
 
     id = Column(Integer, primary_key=True, index=True)
     device_id = Column(Integer, ForeignKey("devices.id"))
-    command = Column(String)
-    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    command = Column(String(255))
     status = Column(Enum(CommandStatus), default=CommandStatus.PENDING)
-    priority = Column(Integer, default=0)
-    execute_after = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    execute_at = Column(DateTime(timezone=True), nullable=True)
 
     # Relationships
-    device = relationship("Device", back_populates="queued_commands")
+    device = relationship("Device", back_populates="command_queue")

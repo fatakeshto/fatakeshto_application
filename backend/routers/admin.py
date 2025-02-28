@@ -28,16 +28,55 @@ async def list_users(skip: int = 0, limit: int = 100, current_user: User = Depen
 async def create_user(user: UserCreate, current_user: User = Depends(get_current_admin_user),
                      db: AsyncSession = Depends(get_db)):
     """Create a new user"""
-    db_user = User(
-        username=user.username,
-        email=user.email,
-        hashed_password=get_password_hash(user.password),
-        role=user.role
+    # Validate unique username and email
+    result = await db.execute(
+        select(User).where(
+            (User.username == user.username) | (User.email == user.email)
+        )
     )
-    db.add(db_user)
-    await db.commit()
-    await db.refresh(db_user)
-    return db_user
+    existing_user = result.scalars().first()
+    if existing_user:
+        if existing_user.username == user.username:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Username already exists"
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already registered"
+            )
+
+    try:
+        db_user = User(
+            username=user.username,
+            email=user.email,
+            hashed_password=get_password_hash(user.password),
+            role=user.role,
+            created_at=datetime.utcnow()
+        )
+        db.add(db_user)
+        await db.commit()
+        await db.refresh(db_user)
+        
+        # Log user creation
+        await db.execute(
+            insert(AuditLog).values(
+                user_id=current_user.id,
+                action="CREATE_USER",
+                details=f"Created new user: {user.username}",
+                timestamp=datetime.utcnow()
+            )
+        )
+        await db.commit()
+        
+        return db_user
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create user: {str(e)}"
+        )
 
 @router.put("/users/{user_id}", response_model=UserOut)
 async def update_user(user_id: int, user: UserUpdate,

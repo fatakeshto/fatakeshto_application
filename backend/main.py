@@ -10,13 +10,19 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Configure CORS
+# Configure CORS and Security Middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://fatakeshto.vercel.app"],  # Only allow the Vercel deployment URL
+    allow_origins=["https://fatakeshto.vercel.app", "http://localhost:5173", "https://*.vercel.app"],  # Allow Vercel preview deployments
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_headers=[
+        "Authorization", "Content-Type", "Accept", "Origin", 
+        "X-Requested-With", "X-CSRF-Token", "X-Auth-Token",
+        "Access-Control-Allow-Credentials", "Access-Control-Allow-Origin"
+    ],
+    expose_headers=["Content-Length", "Content-Range", "X-RateLimit-Limit", "X-RateLimit-Remaining"],
+    max_age=7200  # Increase cache time to 2 hours
 )
 
 # Health check endpoint
