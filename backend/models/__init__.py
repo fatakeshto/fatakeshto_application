@@ -5,6 +5,10 @@ from sqlalchemy.orm import relationship
 from datetime import datetime
 import enum
 
+# Import all models to make them available when importing from models package
+from .models import User, Device, AuditLog, PasswordResetToken, CommandQueue, CommandLog
+from .models import UserRole, DeviceStatus, CommandStatus
+
 class UserRole(str, enum.Enum):
     ADMIN = "admin"
     STANDARD = "standard"
