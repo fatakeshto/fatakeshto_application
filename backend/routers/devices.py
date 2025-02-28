@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select, update
+from sqlalchemy.future import select
+from sqlalchemy import update
 from database import get_db
 from models import Device, CommandLog, CommandQueue
 from schemas import CommandRequest, CommandLogOut, FileOperation, ProcessRequest, ClipboardRequest, DeviceOut
