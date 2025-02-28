@@ -2,6 +2,8 @@ import logging
 import os
 from datetime import datetime
 from functools import wraps
+from sqlalchemy.ext.asyncio import AsyncSession
+from models.error_log import ErrorLog
 
 # Configure logging
 log_dir = 'logs'
@@ -26,6 +28,32 @@ file_handler.setFormatter(formatter)
 
 # Add handler to logger
 db_logger.addHandler(file_handler)
+
+async def log_api_error(db: AsyncSession, error, request=None, user_id=None):
+    """Log API errors with detailed information to database"""
+    error_log = ErrorLog(
+        error_type=type(error).__name__,
+        error_message=str(error),
+        endpoint=request.url.path if request else None,
+        request_method=request.method if request else None,
+        request_body=str(request.body()) if request and request.method != 'GET' else None,
+        status_code=getattr(error, 'status_code', 500),
+        user_id=user_id,
+        ip_address=request.client.host if request else None,
+        stack_trace=getattr(error, '__traceback__', None)
+    )
+    
+    db.add(error_log)
+    await db.commit()
+    
+    error_message = f"API Error:\n"
+    error_message += f"Endpoint: {error_log.endpoint}\n" if error_log.endpoint else ""
+    error_message += f"Error Type: {error_log.error_type}\n"
+    error_message += f"Error Message: {error_log.error_message}\n"
+    error_message += f"Status Code: {error_log.status_code}\n"
+    
+    db_logger.error(error_message)
+    return error_log
 
 def log_db_error(error, operation=None, details=None):
     """Log database errors with detailed information"""

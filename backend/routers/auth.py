@@ -66,10 +66,12 @@ async def register_user(user: UserCreate, request: Request, db: AsyncSession = D
 @rate_limit
 async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
     if not form_data.username or not form_data.password:
-        error_info = log_db_error(
-            error=Exception("Missing credentials"),
-            operation="login_validation",
-            details="Username and password fields are required but not provided"
+        error = Exception("Missing credentials")
+        await log_api_error(
+            db=db,
+            error=error,
+            request=request,
+            user_id=None
         )
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
