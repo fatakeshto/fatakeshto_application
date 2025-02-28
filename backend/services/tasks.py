@@ -1,6 +1,7 @@
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select, delete
+from sqlalchemy.future import select
+from sqlalchemy import delete
 from datetime import datetime, timedelta
 from database import AsyncSessionLocal
 from models import Device, CommandQueue, CommandLog
