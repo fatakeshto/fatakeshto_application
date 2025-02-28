@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from init_db import init_db
+import asyncio
 
 app = FastAPI(
     title="Fatakeshto Application API",
@@ -11,7 +13,7 @@ app = FastAPI(
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://fatakeshto-application.vercel.app"],  # Only allow the Vercel deployment URL
+    allow_origins=["https://fatakeshto.vercel.app"],  # Only allow the Vercel deployment URL
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type"],
@@ -45,6 +47,12 @@ app.include_router(
     prefix="/api/admin",
     tags=["Admin"]
 )
+
+@app.on_event("startup")
+async def startup_event():
+    # Initialize the database
+    await init_db()
+    print("Database initialized successfully")
 
 if __name__ == "__main__":
     import uvicorn

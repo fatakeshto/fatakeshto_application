@@ -198,3 +198,5 @@ class FileOperation(BaseModel):
 
     class Config:
         from_attributes = True
+# Create an alias for AuditLogResponse
+AuditLogResponse = AuditLog
