@@ -13,7 +13,6 @@ logger = logging.getLogger(__name__)
 
 @router.post("/users", response_model=UserOut)
 async def create_user(user: UserCreate, db: AsyncSession = Depends(get_db), admin: User = Depends(get_current_admin_user)):
-    from .utils import get_password_hash
     result = await db.execute(select(User).where(User.username == user.username))
     if result.scalars().first():
         raise HTTPException(status_code=400, detail="Username already registered")

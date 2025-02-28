@@ -6,6 +6,10 @@ from models import Device, User
 from utils import get_current_user
 import json
 from datetime import datetime
+import asyncio
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/ws", tags=["websocket"])
 

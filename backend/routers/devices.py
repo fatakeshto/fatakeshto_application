@@ -3,9 +3,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import update
 from database import get_db
-from models import Device, CommandLog, CommandQueue
+from models import Device, CommandLog, CommandQueue, User
 from schemas import CommandRequest, CommandLogOut, FileOperation, ProcessRequest, ClipboardRequest, DeviceOut
 from utils import get_current_user, verify_device_token
+from datetime import datetime
 import json
 import logging
 
